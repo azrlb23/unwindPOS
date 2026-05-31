@@ -639,51 +639,126 @@ with tab2:
 # TAB 3 — PENJELASAN
 # ═══════════════════════════════════════════════════════════════════════════════
 with tab3:
-    st.markdown('<div class="sl">Cara Kerja Algoritma</div>', unsafe_allow_html=True)
-    cL, cR = st.columns(2, gap="large")
+    st.markdown('<div class="sl">Prinsip Kerja &amp; Spesifikasi Algoritma</div>', unsafe_allow_html=True)
+    
+    # Complexity metrics cards row
+    c_m1, c_m2, c_m3 = st.columns(3)
+    with c_m1:
+        st.markdown('''
+        <div class="mc">
+            <div class="mc-val" style="color: #6366f1;">O(n)</div>
+            <div class="mc-lbl">Kompleksitas Waktu</div>
+            <div style="font-size:0.75rem; color:#9a9385; margin-top:0.4rem; line-height:1.4;">
+                Setiap item belanja dikunjungi tepat 1x secara linear saat rekursi turun.
+            </div>
+        </div>
+        ''', unsafe_allow_html=True)
+    with c_m2:
+        st.markdown('''
+        <div class="mc">
+            <div class="mc-val" style="color: #06b6d4;">O(n)</div>
+            <div class="mc-lbl">Kompleksitas Ruang</div>
+            <div style="font-size:0.75rem; color:#9a9385; margin-top:0.4rem; line-height:1.4;">
+                Mengalokasikan 1 stack frame memori per item secara bertumpuk hingga Base Case.
+            </div>
+        </div>
+        ''', unsafe_allow_html=True)
+    with c_m3:
+        st.markdown('''
+        <div class="mc">
+            <div class="mc-val" style="color: #10b981;">index == len</div>
+            <div class="mc-lbl">Base Case Rekursi</div>
+            <div style="font-size:0.75rem; color:#9a9385; margin-top:0.4rem; line-height:1.4;">
+                Menghentikan panggilan rekursif dan mulai mengembalikan nilai 0 saat antrean habis.
+            </div>
+        </div>
+        ''', unsafe_allow_html=True)
 
-    with cL:
-        st.markdown("#### Fungsi Rekursif")
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    col_code, col_trace = st.columns(2, gap="large")
+    with col_code:
+        st.markdown('<div class="ctrl-card-title">Implementasi Fungsi Rekursif</div>', unsafe_allow_html=True)
         st.code("""def recursive_total_harga(items, index=0):
+    # Base Case: Antrean belanja habis
     if index == len(items):
         return 0
-    return items[index][1] + recursive_total_harga(items, index + 1)
+    # Recurrence Relation: Harga saat ini + subtotal berikutnya
+    return items[index]["harga"] + recursive_total_harga(items, index + 1)
 """, language="python")
-        st.markdown("#### Analogi")
-        st.markdown("""Bayangkan antrian kasir. Kasir pertama mencatat harga satu barang,
-lalu menyerahkan sisa antrian ke kasir berikutnya. Kasir terakhir
-melihat antrian kosong dan mengembalikan **0**. Setiap kasir kemudian
-menjumlahkan hasilnya dan menyerahkan ke atas — persis seperti
-call stack yang *unwind*.""")
 
-    with cR:
-        st.markdown("#### Kompleksitas")
-        m1, m2 = st.columns(2)
-        with m1: st.markdown('<div class="mc"><div class="mc-val">O(n)</div><div class="mc-lbl">Waktu</div></div>', unsafe_allow_html=True)
-        with m2: st.markdown('<div class="mc"><div class="mc-val">O(n)</div><div class="mc-lbl">Ruang (stack)</div></div>', unsafe_allow_html=True)
-        st.markdown("")
-        st.markdown("""| Aspek | Detail |
-|---|---|
-| Waktu | Setiap item dikunjungi 1x |
-| Ruang | 1 stack frame per item |
-| Base case | `index == len(items)` → 0 |
-| Rekursi | `price[i] + f(items, i+1)` |""")
-        st.markdown("#### Trace")
-        st.code("""f(items, 0) = 3500 + f(items, 1)
-                  = 4000 + f(items, 2)
-                             = 12000 + f(items, 3)
-                                        = 0
-                             = 12000
-                  = 16000
-            = 19500 (Total)""", language="text")
+        st.markdown('''
+        <div class="chart-desc" style="margin-top: 1.2rem; padding: 1.1rem 1.3rem;">
+            <strong>Analogi Dunia Nyata: Antrean Kasir Estafet</strong><br><br>
+            Bayangkan sebuah kasir belanja estafet:
+            <ol style="margin-top: 0.4rem; padding-left: 1.1rem; line-height: 1.5; font-size: 0.78rem; color:#4a4637;">
+                <li>Kasir ke-0 mencatat harga barang pertama, lalu mengoper keranjang sisa belanja ke kasir ke-1.</li>
+                <li>Proses ini terus berlanjut (fase turun/winding) hingga keranjang kosong mencapai kasir terakhir (Base Case).</li>
+                <li>Kasir terakhir mengembalikan angka <strong>Rp 0</strong> ke kasir sebelumnya.</li>
+                <li>Setiap kasir menjumlahkan harga barangnya sendiri dengan sub-total yang diterimanya, lalu mengembalikannya ke kasir di atasnya (fase naik/unwinding).</li>
+            </ol>
+        </div>
+        ''', unsafe_allow_html=True)
 
-    st.markdown("---")
-    st.markdown("#### Pemetaan ke Proyek PAA")
-    st.markdown("""| Kasir | PAA (`main.py`) |
-|---|---|
-| Daftar item | `processes` |
-| Harga | `execution_time` |
-| Total belanja | `recursive_total_time()` |
-| Jumlah item N | Jumlah proses N |
+    with col_trace:
+        st.markdown('<div class="ctrl-card-title">Jejak Call Stack (Recursion Trace)</div>', unsafe_allow_html=True)
+        st.markdown('''
+        <div class="receipt" style="padding: 1.2rem 1.4rem; font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; line-height: 1.65;">
+            <div style="color: #6366f1; font-weight: 600; margin-bottom: 0.4rem;">▼ FASE TURUN (Winding Stack)</div>
+            <div style="padding-left: 0.6rem; border-left: 2px solid #6366f1; color: #4a4637;">
+                f(items, 0) = Rp 3.500 + f(items, 1)<br>
+                f(items, 1) = Rp 4.000 + f(items, 2)<br>
+                f(items, 2) = Rp 12.000 + f(items, 3)<br>
+                f(items, 3) = Rp 0 (Base Case dicapai)<br>
+            </div>
+            <div style="color: #10b981; font-weight: 600; margin-top: 1rem; margin-bottom: 0.4rem;">▲ FASE NAIK (Unwinding & Accumulation)</div>
+            <div style="padding-left: 0.6rem; border-left: 2px solid #10b981; color: #4a4637;">
+                f(items, 2) kembali: Rp 12.000 + Rp 0 = Rp 12.000<br>
+                f(items, 1) kembali: Rp 4.000 + Rp 12.000 = Rp 16.000<br>
+                f(items, 0) kembali: Rp 3.500 + Rp 16.000 = Rp 19.500<br>
+            </div>
+            <div style="border-top: 2px solid #1a1a2e; margin-top: 1rem; padding-top: 0.6rem; font-weight: 700; color: #1a1a2e; text-align: right; font-size:0.8rem;">
+                Total Terakumulasi: Rp 19.500
+            </div>
+        </div>
+        ''', unsafe_allow_html=True)
 
-Keduanya menggunakan **algoritma identik** — hanya berbeda domain.""")
+    st.markdown('<div class="sl" style="margin-top: 2rem;">Pemetaan Konseptual ke Proyek Akademis PAA</div>', unsafe_allow_html=True)
+    st.markdown('''
+    <div class="ctrl-card" style="padding: 1.2rem 1.4rem;">
+        <div style="font-size: 0.78rem; color: #9a9385; margin-bottom: 1rem; line-height: 1.5;">
+            Implementasi simulasi kasir belanja ini menggunakan <strong>struktur logika dan pembuktian matematis yang identik</strong> dengan analisis kompleksitas algoritma pemrosesan tugas pada proyek PAA (`main.py`):
+        </div>
+        <table class="comp-table">
+            <thead>
+                <tr>
+                    <th>Aspek Kasir (Simulasi)</th>
+                    <th>Aspek Proyek PAA (`main.py` / `analyzer.py`)</th>
+                    <th>Penjelasan Logis</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Daftar Item Belanja</td>
+                    <td>Dataset Proses (Processes)</td>
+                    <td>Kumpulan data input linear N elemen yang diproses satu per satu.</td>
+                </tr>
+                <tr>
+                    <td>Harga Satuan Produk</td>
+                    <td>Execution Time (Waktu Proses)</td>
+                    <td>Bobot kuantitatif numerik pada tiap node data yang akan dijumlahkan.</td>
+                </tr>
+                <tr>
+                    <td>Total Pembayaran Kasir</td>
+                    <td>Total Waktu Eksekusi Rekursif</td>
+                    <td>Hasil akhir dari akumulasi seluruh bobot data.</td>
+                </tr>
+                <tr>
+                    <td>Jumlah Barang Belanja (N)</td>
+                    <td>Ukuran Dataset Proses (N)</td>
+                    <td>Parameter penentu kedalaman tumpukan memori (Call Stack depth).</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    ''', unsafe_allow_html=True)

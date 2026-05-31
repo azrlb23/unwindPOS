@@ -418,4 +418,34 @@
     margin-bottom: 0.8rem;
 }
 
+/* ═══ COMPARISON TABLE ═══ */
+.comp-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+}
+.comp-table th {
+    text-align: left;
+    padding: 0.7rem 0.9rem;
+    background: rgba(99, 102, 241, 0.06);
+    color: #4338ca;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    border-bottom: 2px solid rgba(99, 102, 241, 0.12);
+}
+.comp-table td {
+    padding: 0.7rem 0.9rem;
+    border-bottom: 1px solid rgba(26, 26, 46, 0.05);
+    color: #4a4637;
+    font-family: 'DM Sans', sans-serif;
+}
+.comp-table tr:last-child td {
+    border-bottom: none;
+}
+.comp-table tr:hover td {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+
 
