@@ -474,15 +474,19 @@ with tab2:
     col_ctrl, col_res = st.columns([3, 7], gap="large")
 
     with col_ctrl:
+        st.markdown('<div class="ctrl-card-title">Pengaturan Benchmark</div>', unsafe_allow_html=True)
         size_map = {"100": 100, "500": 500, "1.000": 1000, "5.000": 5000,
                     "10.000": 10000, "50.000": 50000, "100.000": 100000}
-        sel = st.multiselect("N:", list(size_map.keys()),
-                             default=["100", "500", "1.000", "5.000", "10.000", "50.000"],
-                             label_visibility="collapsed")
+        sel = st.multiselect("Ukuran N:", list(size_map.keys()),
+                             default=["100", "500", "1.000", "5.000", "10.000", "50.000"])
         repeat = st.slider("Pengulangan per N", 1, 10, 3)
+        
+        st.markdown("<br>", unsafe_allow_html=True)
         run_bench = st.button("Jalankan", type="primary", use_container_width=True)
-        if st.session_state.bench_results and st.button("Reset", use_container_width=True):
-            st.session_state.bench_results = None; st.rerun()
+        if st.session_state.bench_results:
+            if st.button("Reset", use_container_width=True):
+                st.session_state.bench_results = None
+                st.rerun()
 
     with col_res:
         if run_bench and sel:
@@ -500,8 +504,47 @@ with tab2:
 
         if st.session_state.bench_results:
             df = pd.DataFrame(st.session_state.bench_results)
-            fig = go.Figure()
             
+            # Calculate metrics
+            min_row = df.loc[df["Waktu (detik)"].idxmin()]
+            max_row = df.loc[df["Waktu (detik)"].idxmax()]
+            t_max = max_row["Waktu (detik)"]
+            t_min = min_row["Waktu (detik)"]
+            n_max = max_row["N"]
+            n_min = min_row["N"]
+            if t_min > 0 and n_min > 0:
+                linearity_ratio = (t_max / n_max) / (t_min / n_min)
+                linearity_text = f"{linearity_ratio:.2f}x"
+            else:
+                linearity_text = "-"
+
+            # Render metrics cards
+            mc1, mc2, mc3 = st.columns(3)
+            with mc1:
+                st.markdown(f'''
+                <div class="mc">
+                    <div class="mc-val">{t_min:.6f}s</div>
+                    <div class="mc-lbl">Tercepat (N={min_row["N"]:,})</div>
+                </div>
+                ''', unsafe_allow_html=True)
+            with mc2:
+                st.markdown(f'''
+                <div class="mc">
+                    <div class="mc-val">{t_max:.6f}s</div>
+                    <div class="mc-lbl">Terlambat (N={max_row["N"]:,})</div>
+                </div>
+                ''', unsafe_allow_html=True)
+            with mc3:
+                st.markdown(f'''
+                <div class="mc">
+                    <div class="mc-val">{linearity_text}</div>
+                    <div class="mc-lbl">Indeks Skala O(n)</div>
+                </div>
+                ''', unsafe_allow_html=True)
+
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            fig = go.Figure()
             # Smooth spline line for actual time
             fig.add_trace(go.Scatter(
                 x=df["N"], y=df["Waktu (detik)"], 
@@ -554,19 +597,31 @@ with tab2:
                 margin=dict(t=20, b=40, l=60, r=20), height=360,
             )
             st.plotly_chart(fig, use_container_width=True, theme=None)
+            
+            st.markdown('<div class="sl">Detail Hasil Pengujian</div>', unsafe_allow_html=True)
+            c_desc, c_tbl = st.columns([5, 5], gap="large")
+            with c_desc:
+                st.markdown('''
+                <div class="chart-desc" style="height: 100%; margin-top: 0; padding: 1.1rem 1.3rem;">
+                    <strong>Analisis Kompleksitas Waktu Aktual vs Teoritis</strong><br><br>
+                    Grafik di atas membandingkan waktu eksekusi aktual dari algoritma rekursif dengan estimasi linear teoritis O(n).<br><br>
+                    Karena setiap item belanja hanya diproses tepat satu kali pada setiap kedalaman rekursi, grafik waktu aktual akan membentuk garis lurus (linear), membuktikan efisiensi algoritma berada pada tingkat O(n). Indeks Skala O(n) yang stabil mengonfirmasi skalabilitas linear yang konsisten tanpa overhead memori yang eksponensial.
+                </div>
+                ''', unsafe_allow_html=True)
+            with c_tbl:
+                df_s = df.copy()
+                df_s["N"] = df_s["N"].apply(lambda x: f"{x:,}")
+                df_s["Waktu (detik)"] = df_s["Waktu (detik)"].apply(lambda x: f"{x:.6f}")
+                st.dataframe(df_s, use_container_width=True, hide_index=True)
+        else:
             st.markdown('''
-            <div class="chart-desc">
-                <strong>Analisis Kompleksitas Waktu Aktual vs Teoritis</strong><br>
-                Grafik ini membandingkan waktu eksekusi aktual dari algoritma rekursif dengan estimasi linear teoritis O(n). Karena setiap item belanja hanya diproses tepat satu kali pada setiap kedalaman rekursi, grafik waktu aktual akan membentuk garis lurus (linear), membuktikan efisiensi algoritma berada pada tingkat O(n).
+            <div class="receipt" style="text-align: center; padding: 3rem 2rem;">
+                <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; font-weight: 600; color: #1a1a2e; margin-bottom: 0.5rem;">Siap Memulai Pengujian</div>
+                <div style="font-size: 0.8rem; color: #9a9385; max-width: 400px; margin: 0 auto 1.5rem auto; line-height: 1.5;">
+                    Konfigurasikan ukuran dataset N dan jumlah pengulangan di panel kiri, kemudian klik tombol <strong>Jalankan</strong> untuk memulai analisis kompleksitas waktu secara real-time.
+                </div>
             </div>
             ''', unsafe_allow_html=True)
-            
-            df_s = df.copy()
-            df_s["N"] = df_s["N"].apply(lambda x: f"{x:,}")
-            df_s["Waktu (detik)"] = df_s["Waktu (detik)"].apply(lambda x: f"{x:.6f}")
-            st.dataframe(df_s, use_container_width=True, hide_index=True)
-        elif not run_bench:
-            st.info("Pilih ukuran N lalu klik Jalankan.")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
