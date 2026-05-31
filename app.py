@@ -474,6 +474,7 @@ with tab2:
     col_ctrl, col_res = st.columns([3, 7], gap="large")
 
     with col_ctrl:
+        st.markdown('<span id="bench-settings-marker"></span>', unsafe_allow_html=True)
         st.markdown('<div class="ctrl-card-title">Pengaturan Benchmark</div>', unsafe_allow_html=True)
         size_map = {"100": 100, "500": 500, "1.000": 1000, "5.000": 5000,
                     "10.000": 10000, "50.000": 50000, "100.000": 100000}
