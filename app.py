@@ -541,63 +541,74 @@ with tab2:
                     <div class="mc-lbl">Indeks Skala O(n)</div>
                 </div>
                 ''', unsafe_allow_html=True)
-
             st.markdown("<br>", unsafe_allow_html=True)
 
-            fig = go.Figure()
-            # Smooth spline line for actual time
-            fig.add_trace(go.Scatter(
-                x=df["N"], y=df["Waktu (detik)"], 
-                mode="lines+markers", 
-                name="Aktual",
-                line=dict(shape="spline", smoothing=1.3, color=C["indigo"], width=3.5),
-                fill="tozeroy",
-                fillcolor="rgba(99, 102, 241, 0.06)",
-                marker=dict(size=8, color=C["indigo"], symbol="circle", line=dict(color="#ffffff", width=2)),
-                hovertemplate="N = %{x:,}<br>Waktu = <b>%{y:.6f}s</b><extra></extra>"
-            ))
+            chart_tab1, chart_tab2 = st.tabs(["Kurva Penskalaan Waktu", "Efisiensi per Item"])
             
-            if len(df) > 1:
-                sc = df["Waktu (detik)"].iloc[0] / df["N"].iloc[0]
+            with chart_tab1:
+                fig = go.Figure()
                 fig.add_trace(go.Scatter(
-                    x=df["N"], y=df["N"] * sc, 
-                    mode="lines", 
-                    name="O(n) Teoritis",
-                    line=dict(color="#b8b0a4", width=1.5, dash="dot"),
-                    hovertemplate="Teoritis = <b>%{y:.6f}s</b><extra></extra>"
+                    x=df["N"], y=df["Waktu (detik)"], 
+                    mode="lines+markers", 
+                    name="Aktual",
+                    line=dict(shape="spline", smoothing=1.3, color=C["indigo"], width=3.5),
+                    fill="tozeroy",
+                    fillcolor="rgba(99, 102, 241, 0.06)",
+                    marker=dict(size=8, color=C["indigo"], symbol="circle", line=dict(color="#ffffff", width=2)),
+                    hovertemplate="N = %{x:,}<br>Waktu = <b>%{y:.6f}s</b><extra></extra>"
                 ))
+                if len(df) > 1:
+                    sc = df["Waktu (detik)"].iloc[0] / df["N"].iloc[0]
+                    fig.add_trace(go.Scatter(
+                        x=df["N"], y=df["N"] * sc, 
+                        mode="lines", 
+                        name="O(n) Teoritis",
+                        line=dict(color="#b8b0a4", width=1.5, dash="dot"),
+                        hovertemplate="Teoritis = <b>%{y:.6f}s</b><extra></extra>"
+                    ))
+                fig.update_layout(
+                    xaxis=dict(title="N (Jumlah Item)", showgrid=False, color="#9a9385", tickfont=dict(family="Space Grotesk", size=9)),
+                    yaxis=dict(title="Waktu Eksekusi (s)", showgrid=True, gridcolor="#ebe7e0", zeroline=False, color="#9a9385", tickfont=dict(family="JetBrains Mono", size=9)),
+                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                    font=dict(family="DM Sans", color="#9a9385"),
+                    legend=dict(x=0.02, y=0.98, xanchor="left", yanchor="top", bgcolor="rgba(255,255,255,0.75)", bordercolor="#e2ddd5", borderwidth=1, font=dict(size=10, family="DM Sans")),
+                    hovermode="x unified", margin=dict(t=20, b=40, l=60, r=20), height=360,
+                )
+                st.plotly_chart(fig, use_container_width=True, theme=None)
                 
-            fig.update_layout(
-                xaxis=dict(
-                    title="N (Jumlah Item)",
-                    showgrid=False,
-                    color="#9a9385",
-                    tickfont=dict(family="Space Grotesk", size=9)
-                ),
-                yaxis=dict(
-                    title="Waktu Eksekusi (s)",
-                    showgrid=True,
-                    gridcolor="#ebe7e0",
-                    zeroline=False,
-                    color="#9a9385",
-                    tickfont=dict(family="JetBrains Mono", size=9)
-                ),
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(family="DM Sans", color="#9a9385"),
-                legend=dict(
-                    x=0.02, y=0.98,
-                    xanchor="left", yanchor="top",
-                    bgcolor="rgba(255,255,255,0.75)",
-                    bordercolor="#e2ddd5",
-                    borderwidth=1,
-                    font=dict(size=10, family="DM Sans")
-                ),
-                hovermode="x unified",
-                margin=dict(t=20, b=40, l=60, r=20), height=360,
-            )
-            st.plotly_chart(fig, use_container_width=True, theme=None)
-            
+            with chart_tab2:
+                fig_eff = go.Figure()
+                df["Waktu per Item (µs)"] = (df["Waktu (detik)"] / df["N"]) * 1_000_000
+                fig_eff.add_trace(go.Scatter(
+                    x=df["N"], y=df["Waktu per Item (µs)"], 
+                    mode="lines+markers", 
+                    name="Waktu/Item (µs)",
+                    line=dict(shape="spline", smoothing=1.3, color=C["cyan"], width=3.5),
+                    fill="tozeroy",
+                    fillcolor="rgba(6, 182, 212, 0.06)",
+                    marker=dict(size=8, color=C["cyan"], symbol="circle", line=dict(color="#ffffff", width=2)),
+                    hovertemplate="N = %{x:,}<br>Efisiensi = <b>%{y:.4f} µs/item</b><extra></extra>"
+                ))
+                if len(df) > 1:
+                    avg_eff = df["Waktu per Item (µs)"].mean()
+                    fig_eff.add_trace(go.Scatter(
+                        x=df["N"], y=[avg_eff] * len(df), 
+                        mode="lines", 
+                        name="Rata-rata",
+                        line=dict(color="#b8b0a4", width=1.5, dash="dot"),
+                        hovertemplate="Rata-rata = <b>%{y:.4f} µs/item</b><extra></extra>"
+                    ))
+                fig_eff.update_layout(
+                    xaxis=dict(title="N (Jumlah Item)", showgrid=False, color="#9a9385", tickfont=dict(family="Space Grotesk", size=9)),
+                    yaxis=dict(title="Waktu per Item (µs)", showgrid=True, gridcolor="#ebe7e0", zeroline=False, color="#9a9385", tickfont=dict(family="JetBrains Mono", size=9)),
+                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                    font=dict(family="DM Sans", color="#9a9385"),
+                    legend=dict(x=0.02, y=0.98, xanchor="left", yanchor="top", bgcolor="rgba(255,255,255,0.75)", bordercolor="#e2ddd5", borderwidth=1, font=dict(size=10, family="DM Sans")),
+                    hovermode="x unified", margin=dict(t=20, b=40, l=60, r=20), height=360,
+                )
+                st.plotly_chart(fig_eff, use_container_width=True, theme=None)
+
+            st.markdown("<br>", unsafe_allow_html=True)
             st.markdown('<div class="sl">Detail Hasil Pengujian</div>', unsafe_allow_html=True)
             c_desc, c_tbl = st.columns([5, 5], gap="large")
             with c_desc:
