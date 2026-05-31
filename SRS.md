@@ -1,10 +1,11 @@
 # Spesifikasi Kebutuhan Perangkat Lunak (SRS)
 
-**Judul Sistem:** Sistem Analisis Kompleksitas Algoritma Rekursif untuk Optimasi Pemindahan Data dan Penjadwalan Proses
-**Versi Dokumen:** 1.0
-**Tanggal:** 30 Mei 2026
+**Judul Sistem:** unwindPOS — Sistem Visualisasi Interaktif & Analisis Kompleksitas Algoritma Rekursif Kasir Modern
+**Versi Dokumen:** 2.0
+**Tanggal:** 01 Juni 2026
 **Program Studi:** Informatika — Institut Teknologi Kalimantan
 **Mata Kuliah:** Perancangan dan Analisis Algoritma
+**Repositori:** [github.com/azrlb23/unwindPOS](https://github.com/azrlb23/unwindPOS)
 
 ---
 
@@ -66,8 +67,14 @@ Sistem ini bukan merupakan sistem penjadwalan proses secara nyata, melainkan sim
 
 ### 2.1 Perspektif Sistem
 
-Sistem ini berdiri sendiri sebagai skrip Python yang dijalankan secara lokal. Sistem tidak memerlukan koneksi jaringan, basis data eksternal, atau antarmuka pengguna grafis. Seluruh interaksi terjadi melalui keluaran di terminal dan tampilan grafik yang dihasilkan oleh pustaka Matplotlib.
+Sistem ini memiliki **dua mode operasi** yang berdiri sendiri:
 
+1. **Mode CLI Analyzer (`main.py`):** Skrip Python klasik yang dijalankan melalui terminal, mengukur waktu eksekusi algoritma rekursif pada 8 variasi ukuran dataset, dan menghasilkan grafik Matplotlib.
+2. **Mode Dashboard Interaktif (`app.py`):** Aplikasi web berbasis Streamlit yang menyediakan simulasi kasir belanja real-time, animasi visualisasi Call Stack step-by-step, benchmark performa interaktif, dan penjelasan cara kerja algoritma dengan desain UI glassmorphism modern.
+
+Kedua mode menggunakan **algoritma rekursif yang identik**, hanya berbeda pada domain data dan antarmuka penyajian.
+
+#### Arsitektur Mode CLI
 ```
 +--------------------+
 |   Pengguna (CLI)   |
@@ -97,6 +104,32 @@ Sistem ini berdiri sendiri sebagai skrip Python yang dijalankan secara lokal. Si
                              | Visualisasi Grafik     |
                              | Matplotlib + Seaborn   |
                              +------------------------+
+```
+
+#### Arsitektur Mode Dashboard
+```
++------------------------+
+|  Pengguna (Browser)    |
++------------------------+
+          |
+          | http://localhost:8501
+          v
++------------------------+       +----------------------------+
+| Streamlit App (app.py) | ----> | Katalog & Keranjang Kasir  |
+| UI Glassmorphism       |       | src/kasir.py               |
++------------------------+       +----------------------------+
+          |                                   |
+          v                                   v
++------------------------+       +----------------------------+
+| Animasi Step-by-Step   |       | Fungsi Rekursif Kasir      |
+| get_rekursi_steps()    |       | recursive_total_harga()    |
++------------------------+       +----------------------------+
+          |                                   |
+          v                                   v
++------------------------+       +----------------------------+
+| Grafik Plotly          |       | Benchmark Real-time        |
+| (Interaktif)           |       | time.perf_counter()        |
++------------------------+       +----------------------------+
 ```
 
 ### 2.2 Fungsi Utama Sistem
@@ -270,10 +303,17 @@ Rata-rata Waktu : [X.XXXXXX] detik
 
 ### 5.1 Antarmuka Pengguna
 
-Sistem tidak memiliki antarmuka pengguna grafis. Seluruh interaksi dilakukan melalui:
+Sistem memiliki **dua jenis antarmuka pengguna**:
 
+#### Mode CLI (`main.py`)
 - **Terminal / Command Prompt** — untuk menjalankan skrip dan membaca keluaran teks
 - **Jendela grafik Matplotlib** — untuk melihat grafik visualisasi yang muncul secara otomatis setelah pengujian selesai
+
+#### Mode Dashboard Interaktif (`app.py`)
+- **Browser Web** — antarmuka Streamlit modern yang diakses melalui `http://localhost:8501`
+- **Tab Simulasi Kasir** — katalog produk glassmorphic, keranjang belanja interaktif, pengendali animasi (Play/Pause, Step, Speed, Skip, Replay), struk belanja digital, dan grafik analisis otomatis (Pie, Bar, Waterfall)
+- **Tab Benchmark Performa** — panel pengaturan ukuran dataset N dengan multiselect, slider pengulangan, kartu metrik glassmorphic (Tercepat, Terlambat, Indeks Skala O(n)), kurva penskalaan waktu, dan grafik efisiensi per item (µs)
+- **Tab Cara Kerja Algoritma** — kartu metrik kompleksitas, kode sumber beranotasi, jejak Call Stack visual (Winding & Unwinding), dan tabel pemetaan konseptual
 
 ### 5.2 Antarmuka Perangkat Keras
 
@@ -294,8 +334,10 @@ Tidak ada kebutuhan perangkat keras khusus. Sistem berjalan pada komputer umum d
 | time | Bawaan Python | Pengukuran waktu eksekusi |
 | sys | Bawaan Python | Penyesuaian batas rekursi |
 | pandas | 1.3.0 | Pengelolaan tabel hasil |
-| matplotlib | 3.4.0 | Pembuatan grafik |
-| seaborn | 0.11.0 | Penataan tema grafik |
+| matplotlib | 3.4.0 | Pembuatan grafik (mode CLI) |
+| seaborn | 0.11.0 | Penataan tema grafik (mode CLI) |
+| streamlit | 1.28.0 | Framework dashboard interaktif |
+| plotly | 5.0.0 | Grafik interaktif pada dashboard |
 
 ---
 
@@ -477,6 +519,15 @@ Tabel berikut memetakan setiap kebutuhan fungsional ke bagian kode yang mengimpl
 | KNF-02 | Keandalan hasil | `random.seed(42)` | Bab 5.3 |
 | A-04 | Nilai awal bilangan acak | `random.seed(42)` | Bab 5.3 |
 | K-04 | Batas kedalaman rekursi | `sys.setrecursionlimit(1000001)` | Bab 5.3, Bab 7 |
+
+---
+
+## 11. Catatan Perubahan Versi
+
+| Versi | Tanggal | Perubahan |
+|---|---|---|
+| 1.0 | 30 Mei 2026 | Dokumen awal — mode CLI analyzer (main.py) |
+| 2.0 | 01 Juni 2026 | Penambahan mode dashboard interaktif (app.py), pembaruan antarmuka pengguna, penambahan dependensi Streamlit & Plotly, pembaruan diagram arsitektur |
 
 ---
 
