@@ -8,6 +8,9 @@ sys.setrecursionlimit(1_100_000)
 
 from src.kasir import KATALOG, get_product, keranjang_ke_items, recursive_total_harga, get_rekursi_steps
 from src.generator import generate_processes
+from src.analyzer import recursive_merge_sort
+from src.visualizer_core import get_mergesort_steps, get_roundrobin_steps
+import random
 
 st.set_page_config(page_title="unwindPOS", layout="wide", initial_sidebar_state="collapsed")
 
@@ -31,7 +34,20 @@ for k, v in {
     "anim_step_index": 0,
     "anim_speed": 0.2,
     "items_flat": [],
-    "steps": []
+    "steps": [],
+    "ms_arr": [],
+    "ms_steps": [],
+    "ms_anim_idx": 0,
+    "ms_running": False,
+    "rr_queue": [],
+    "rr_quantum": 4,
+    "rr_steps": [],
+    "rr_anim_idx": 0,
+    "rr_running": False,
+    "bench_demo_steps": [],
+    "bench_demo_idx": 0,
+    "bench_demo_running": False,
+    "bench_demo_n": 10
 }.items():
     if k not in st.session_state:
         st.session_state[k] = v
@@ -107,7 +123,7 @@ st.markdown("""
   </div>
 </div>""", unsafe_allow_html=True)
 
-tab1, tab2, tab3 = st.tabs(["Simulasi Kasir", "Benchmark", "Cara Kerja"])
+tab1, tab_ms, tab_rr, tab2, tab3 = st.tabs(["Simulasi Kasir", "Merge Sort (Visual)", "Round Robin (Visual)", "Benchmark", "Cara Kerja"])
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TAB 1
@@ -467,10 +483,268 @@ with tab1:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# TAB MERGE SORT
+# ═══════════════════════════════════════════════════════════════════════════════
+with tab_ms:
+    st.markdown('<div class="sl">Pengaturan Merge Sort</div>', unsafe_allow_html=True)
+    c_ms_ctrl, c_ms_vis = st.columns([3, 7], gap="large")
+    
+    with c_ms_ctrl:
+        st.markdown('<div class="ctrl-card-title">Pengaturan Merge Sort</div>', unsafe_allow_html=True)
+        n_ms = st.slider("Jumlah Elemen Array (N)", 4, 32, 16, step=2, key="n_ms")
+        if st.button("Generate & Mulai Simulasi", key="btn_ms_gen", use_container_width=True, type="primary"):
+            st.session_state.ms_arr = [random.randint(10, 99) for _ in range(n_ms)]
+            st.session_state.ms_steps = get_mergesort_steps(st.session_state.ms_arr)
+            st.session_state.ms_anim_idx = 0
+            st.session_state.ms_running = True
+            st.rerun()
+        
+    with c_ms_vis:
+        if st.session_state.ms_steps:
+            steps = st.session_state.ms_steps
+            idx = st.session_state.ms_anim_idx
+            step = steps[idx]
+            is_done = (idx >= len(steps) - 1)
+            
+            st.markdown('<div class="sl">Visualisasi Array</div>', unsafe_allow_html=True)
+            
+            c_p, c_b, c_f, c_s = st.columns(4)
+            with c_p:
+                if st.button("Play/Pause", key="ms_play", use_container_width=True, disabled=is_done):
+                    st.session_state.ms_running = not st.session_state.ms_running
+                    st.rerun()
+            with c_b:
+                if st.button("Step Back", key="ms_back", use_container_width=True, disabled=st.session_state.ms_running or idx == 0):
+                    st.session_state.ms_anim_idx = max(0, idx - 1)
+                    st.rerun()
+            with c_f:
+                if st.button("Step Forward", key="ms_fwd", use_container_width=True, disabled=st.session_state.ms_running or is_done):
+                    st.session_state.ms_anim_idx = min(len(steps) - 1, idx + 1)
+                    st.rerun()
+            with c_s:
+                if st.button("Skip to End", key="ms_skip", use_container_width=True, disabled=is_done):
+                    st.session_state.ms_anim_idx = len(steps) - 1
+                    st.session_state.ms_running = False
+                    st.rerun()
+                    
+            st.progress((idx + 1) / len(steps), text=step["msg"])
+            
+            arr = step["arr"]
+            bounds = step["bounds"]
+            action = step["action"]
+            colors = []
+            for i in range(len(arr)):
+                if i >= bounds[0] and i < bounds[1]:
+                    if action == "divide": colors.append(C["amber"])
+                    elif action == "compare":
+                        if "compare_indices" in step and i in step["compare_indices"]:
+                            colors.append(C["indigo"])
+                        else:
+                            colors.append(C["cyan"])
+                    elif action == "merge_done": colors.append(C["green"])
+                    elif action == "base": colors.append(C["purple"])
+                    else: colors.append(C["cyan"])
+                else:
+                    colors.append(C["border"])
+                    
+            fig_ms = go.Figure(go.Bar(
+                x=[f"Idx {i}" for i in range(len(arr))], y=arr,
+                marker_color=colors, text=arr, textposition="auto",
+                textfont=dict(family="JetBrains Mono", size=12, color="#1a1a2e")
+            ))
+            fig_ms.update_layout(
+                yaxis=dict(visible=False), xaxis=dict(visible=False),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                margin=dict(t=10, b=10, l=10, r=10), height=250
+            )
+            st.plotly_chart(fig_ms, use_container_width=True, config={'displayModeBar': False})
+            
+            if is_done:
+                st.markdown('''
+                <div class="success-banner" style="margin-top: 1rem;">
+                    <strong>Kesimpulan Visualisasi Merge Sort:</strong><br>
+                    Terbukti bahwa algoritma Merge Sort memproses pengurutan tidak dengan mengecek satu per satu secara linear, melainkan dengan memecah total <b>N</b> elemen menjadi sub-elemen terkecil (log N), lalu menaklukkan dan menggabungkannya kembali secara terurut. Efisiensi <b>O(n log n)</b> ini menjadikannya sangat optimal untuk sistem antrean pemindahan data dalam skala masif.
+                </div>
+                ''', unsafe_allow_html=True)
+            
+            if st.session_state.ms_running and not is_done:
+                time.sleep(0.4)
+                st.session_state.ms_anim_idx += 1
+                st.rerun()
+        else:
+            st.info("Tekan tombol Generate & Mulai Simulasi untuk melihat visualisasi Merge Sort.")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TAB ROUND ROBIN
+# ═══════════════════════════════════════════════════════════════════════════════
+with tab_rr:
+    st.markdown('<div class="sl">Pengaturan Round Robin</div>', unsafe_allow_html=True)
+    c_rr_ctrl, c_rr_vis = st.columns([3, 7], gap="large")
+    
+    with c_rr_ctrl:
+        st.markdown('<div class="ctrl-card-title">Pengaturan Round Robin</div>', unsafe_allow_html=True)
+        n_rr = st.slider("Jumlah Proses (N)", 3, 10, 5, key="n_rr")
+        q_rr = st.slider("Quantum", 2, 10, 4, key="q_rr")
+        if st.button("Generate & Mulai Simulasi", key="btn_rr_gen", use_container_width=True, type="primary"):
+            st.session_state.rr_queue = [[f"P{i+1}", random.randint(5, 20)] for i in range(n_rr)]
+            st.session_state.rr_quantum = q_rr
+            st.session_state.rr_steps = get_roundrobin_steps(st.session_state.rr_queue, q_rr)
+            st.session_state.rr_anim_idx = 0
+            st.session_state.rr_running = True
+            st.rerun()
+        
+    with c_rr_vis:
+        if st.session_state.rr_steps:
+            steps = st.session_state.rr_steps
+            idx = st.session_state.rr_anim_idx
+            step = steps[idx]
+            is_done = (idx >= len(steps) - 1)
+            
+            st.markdown('<div class="sl">Visualisasi Antrean & CPU</div>', unsafe_allow_html=True)
+            
+            c_p, c_b, c_f, c_s = st.columns(4)
+            with c_p:
+                if st.button("Play/Pause", key="rr_play", use_container_width=True, disabled=is_done):
+                    st.session_state.rr_running = not st.session_state.rr_running
+                    st.rerun()
+            with c_b:
+                if st.button("Step Back", key="rr_back", use_container_width=True, disabled=st.session_state.rr_running or idx == 0):
+                    st.session_state.rr_anim_idx = max(0, idx - 1)
+                    st.rerun()
+            with c_f:
+                if st.button("Step Forward", key="rr_fwd", use_container_width=True, disabled=st.session_state.rr_running or is_done):
+                    st.session_state.rr_anim_idx = min(len(steps) - 1, idx + 1)
+                    st.rerun()
+            with c_s:
+                if st.button("Skip to End", key="rr_skip", use_container_width=True, disabled=is_done):
+                    st.session_state.rr_anim_idx = len(steps) - 1
+                    st.session_state.rr_running = False
+                    st.rerun()
+                    
+            st.progress((idx + 1) / len(steps), text=f"Waktu: {step['time']}s | {step['msg']}")
+            
+            c_cpu, c_q = st.columns([3, 7])
+            with c_cpu:
+                st.markdown('<div style="text-align:center; font-family:Space Grotesk; font-weight:600; color:#1a1a2e; margin-bottom:10px;">Dalam CPU</div>', unsafe_allow_html=True)
+                if step["active"]:
+                    name, burst = step["active"]
+                    st.markdown(f'''
+                    <div class="pc" style="background: rgba(99,102,241,0.1); border-color: #6366f1; text-align:center; padding: 2rem 1rem;">
+                        <div class="pc-name" style="font-size: 1.5rem; color:#4338ca;">{name}</div>
+                        <div class="pc-price" style="font-size: 1rem;">Sisa: {burst}s</div>
+                    </div>
+                    ''', unsafe_allow_html=True)
+                else:
+                    st.markdown('''
+                    <div class="pc" style="background: rgba(226,221,213,0.3); border-style: dashed; text-align:center; padding: 2rem 1rem; opacity: 0.7;">
+                        <div class="pc-name" style="color:#9a9385;">CPU IDLE</div>
+                    </div>
+                    ''', unsafe_allow_html=True)
+                    
+            with c_q:
+                st.markdown('<div style="font-family:Space Grotesk; font-weight:600; color:#1a1a2e; margin-bottom:10px;">Antrean (Queue)</div>', unsafe_allow_html=True)
+                q_html = '<div style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px;">'
+                if not step["queue"]:
+                    q_html += '<div style="color:#9a9385; font-size:0.9rem; font-style:italic;">Antrean kosong</div>'
+                for p in step["queue"]:
+                    q_html += f'<div class="pc" style="min-width: 100px; text-align:center; flex-shrink: 0;"><div class="pc-name">{p[0]}</div><div class="pc-cat">Sisa: {p[1]}s</div></div>'
+                q_html += '</div>'
+                st.markdown(q_html, unsafe_allow_html=True)
+                
+            if is_done:
+                st.markdown('''
+                <div class="success-banner" style="margin-top: 1rem; border-left-color: #06b6d4; background-color: rgba(6, 182, 212, 0.05);">
+                    <strong>Kesimpulan Visualisasi Round Robin:</strong><br>
+                    Terbukti bahwa algoritma Round Robin memberikan <b>keadilan waktu (fairness)</b> bagi setiap proses. Proses dengan waktu eksekusi raksasa tidak diizinkan memonopoli CPU, melainkan diinterupsi secara paksa (<i>preemptive</i>) berdasarkan batas <b>Quantum</b>. Sistem ini menjamin bahwa proses kecil di belakang antrean tidak akan pernah mati menunggu (<i>starvation</i>).
+                </div>
+                ''', unsafe_allow_html=True)
+                
+            if st.session_state.rr_running and not is_done:
+                time.sleep(0.6)
+                st.session_state.rr_anim_idx += 1
+                st.rerun()
+        else:
+            st.info("Tekan tombol Generate & Mulai Simulasi untuk melihat visualisasi Round Robin.")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # TAB 2 — BENCHMARK
 # ═══════════════════════════════════════════════════════════════════════════════
 with tab2:
     st.markdown('<div class="sl">Benchmark Performa</div>', unsafe_allow_html=True)
+
+    # ── Demo Rekursi Step-by-Step ──
+    st.markdown('<div class="ctrl-card-title">Demonstrasi Rekursi pada N Kecil</div>', unsafe_allow_html=True)
+    st.markdown('<div class="chart-desc" style="margin-bottom:1rem;">Pilih nilai N kecil dan jalankan animasi untuk melihat bagaimana rekursi memproses setiap elemen satu per satu sebelum grafik besar dibentuk dari eksekusi ribuan elemen ini.</div>', unsafe_allow_html=True)
+
+    demo_col_ctrl, demo_col_vis = st.columns([3, 7], gap="large")
+    with demo_col_ctrl:
+        demo_n = st.slider("Pilih N untuk Demo", 4, 20, 10, key="bench_demo_n_slider")
+        if st.button("Jalankan Demo Rekursi", key="btn_bench_demo", type="primary", use_container_width=True):
+            from src.kasir import keranjang_ke_items, get_rekursi_steps
+            demo_procs = generate_processes(demo_n)
+            demo_items = [(p[0], p[1] * 1000) for p in demo_procs]
+            st.session_state.bench_demo_steps = get_rekursi_steps(demo_items)
+            st.session_state.bench_demo_idx = 0
+            st.session_state.bench_demo_running = True
+            st.session_state.bench_demo_n = demo_n
+            st.rerun()
+
+    with demo_col_vis:
+        if st.session_state.bench_demo_steps:
+            b_steps = st.session_state.bench_demo_steps
+            b_idx = st.session_state.bench_demo_idx
+            b_step = b_steps[b_idx]
+            b_done = (b_idx >= len(b_steps) - 1)
+
+            bc1, bc2, bc3, bc4 = st.columns(4)
+            with bc1:
+                if st.button("Play/Pause", key="bench_demo_play", use_container_width=True, disabled=b_done):
+                    st.session_state.bench_demo_running = not st.session_state.bench_demo_running
+                    st.rerun()
+            with bc2:
+                if st.button("Step Back", key="bench_demo_back", use_container_width=True, disabled=st.session_state.bench_demo_running or b_idx == 0):
+                    st.session_state.bench_demo_idx = max(0, b_idx - 1)
+                    st.rerun()
+            with bc3:
+                if st.button("Step Forward", key="bench_demo_fwd", use_container_width=True, disabled=st.session_state.bench_demo_running or b_done):
+                    st.session_state.bench_demo_idx = min(len(b_steps) - 1, b_idx + 1)
+                    st.rerun()
+            with bc4:
+                if st.button("Skip", key="bench_demo_skip", use_container_width=True, disabled=b_done):
+                    st.session_state.bench_demo_idx = len(b_steps) - 1
+                    st.session_state.bench_demo_running = False
+                    st.rerun()
+
+            st.progress((b_idx + 1) / len(b_steps), text=b_step["deskripsi"])
+
+            # Build items list from generated processes (as tuples)
+            demo_items_flat = [(f"P{i+1}", generate_processes(st.session_state.bench_demo_n)[i][1] * 1000) for i in range(st.session_state.bench_demo_n)]
+
+            fig_demo = draw_live_recursion_chart(demo_items_flat, b_step)
+            fig_demo.update_layout(height=200)
+            st.plotly_chart(fig_demo, use_container_width=True, theme=None, config={'displayModeBar': False})
+
+            if b_done:
+                total_val = sum(p[1] for p in demo_items_flat)
+                st.markdown(f'''
+                <div class="success-banner">
+                    <strong>Rekursi selesai pada N={st.session_state.bench_demo_n}!</strong> Total akumulasi: {total_val:,} unit.
+                    Algoritma ini menelusuri tepat <b>{st.session_state.bench_demo_n} elemen</b> pada fase turun, dan membalik semuanya pada fase naik &mdash;
+                    itulah mengapa kompleksitasnya <b>O(n)</b>. Bayangkan ini terjadi pada N=100.000 di grafik Benchmark di bawah!
+                </div>
+                ''', unsafe_allow_html=True)
+
+            if st.session_state.bench_demo_running and not b_done:
+                time.sleep(0.3)
+                st.session_state.bench_demo_idx += 1
+                st.rerun()
+        else:
+            st.info("Pilih N di panel kiri dan tekan 'Jalankan Demo Rekursi' untuk melihat animasi step-by-step bagaimana rekursi memproses setiap elemen.")
+
+    st.markdown("---")
+    st.markdown('<div class="sl">Benchmark Skala Penuh</div>', unsafe_allow_html=True)
     col_ctrl, col_res = st.columns([3, 7], gap="large")
 
     with col_ctrl:
@@ -481,6 +755,7 @@ with tab2:
         sel = st.multiselect("Ukuran N:", list(size_map.keys()),
                              default=["100", "500", "1.000", "5.000", "10.000", "50.000"])
         repeat = st.slider("Pengulangan per N", 1, 10, 3)
+        alg_choice = st.radio("Pilih Algoritma", ["Kasir (O(n))", "Merge Sort (O(n log n))"], horizontal=True)
         
         st.markdown("<br>", unsafe_allow_html=True)
         run_bench = st.button("Jalankan", type="primary", use_container_width=True)
@@ -496,10 +771,19 @@ with tab2:
             results = []
             for i, n in enumerate(sizes):
                 prog.progress(i / len(sizes), text=f"N = {n:,} ...")
-                procs = generate_processes(n); times = []
+                times = []
                 for _ in range(repeat):
-                    t0 = time.perf_counter(); recursive_total_harga(procs); times.append(time.perf_counter() - t0)
-                results.append({"N": n, "Waktu (detik)": sum(times) / len(times)})
+                    if alg_choice == "Kasir (O(n))":
+                        procs = generate_processes(n)
+                        t0 = time.perf_counter()
+                        recursive_total_harga(procs)
+                        times.append(time.perf_counter() - t0)
+                    else:
+                        files = [{"nama": f"F{j}", "size_kb": random.randint(100, 9999)} for j in range(n)]
+                        t0 = time.perf_counter()
+                        recursive_merge_sort(files)
+                        times.append(time.perf_counter() - t0)
+                results.append({"N": n, "Waktu (detik)": sum(times) / len(times), "Algoritma": alg_choice})
             prog.progress(1.0, text="Selesai")
             st.session_state.bench_results = results
 
@@ -513,11 +797,20 @@ with tab2:
             t_min = min_row["Waktu (detik)"]
             n_max = max_row["N"]
             n_min = min_row["N"]
+            import math
+            alg_terpilih = df["Algoritma"].iloc[0] if "Algoritma" in df.columns else "Kasir (O(n))"
+            
             if t_min > 0 and n_min > 0:
-                linearity_ratio = (t_max / n_max) / (t_min / n_min)
+                if alg_terpilih == "Kasir (O(n))":
+                    linearity_ratio = (t_max / n_max) / (t_min / n_min)
+                    lbl_indeks = "Indeks Skala O(n)"
+                else:
+                    linearity_ratio = (t_max / (n_max * math.log2(n_max))) / (t_min / (n_min * math.log2(n_min)))
+                    lbl_indeks = "Indeks Skala O(n log n)"
                 linearity_text = f"{linearity_ratio:.2f}x"
             else:
                 linearity_text = "-"
+                lbl_indeks = "Indeks Skala"
 
             # Render metrics cards
             mc1, mc2, mc3 = st.columns(3)
@@ -539,7 +832,7 @@ with tab2:
                 st.markdown(f'''
                 <div class="mc">
                     <div class="mc-val">{linearity_text}</div>
-                    <div class="mc-lbl">Indeks Skala O(n)</div>
+                    <div class="mc-lbl">{lbl_indeks}</div>
                 </div>
                 ''', unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
@@ -559,11 +852,21 @@ with tab2:
                     hovertemplate="N = %{x:,}<br>Waktu = <b>%{y:.6f}s</b><extra></extra>"
                 ))
                 if len(df) > 1:
-                    sc = df["Waktu (detik)"].iloc[0] / df["N"].iloc[0]
+                    n0 = df["N"].iloc[0]
+                    t0 = df["Waktu (detik)"].iloc[0]
+                    if alg_terpilih == "Kasir (O(n))":
+                        sc = t0 / n0
+                        y_teori = df["N"] * sc
+                        lbl_teori = "O(n) Teoritis"
+                    else:
+                        sc = t0 / (n0 * math.log2(n0))
+                        y_teori = df["N"].apply(lambda x: x * math.log2(x) * sc)
+                        lbl_teori = "O(n log n) Teoritis"
+
                     fig.add_trace(go.Scatter(
-                        x=df["N"], y=df["N"] * sc, 
+                        x=df["N"], y=y_teori, 
                         mode="lines", 
-                        name="O(n) Teoritis",
+                        name=lbl_teori,
                         line=dict(color="#b8b0a4", width=1.5, dash="dot"),
                         hovertemplate="Teoritis = <b>%{y:.6f}s</b><extra></extra>"
                     ))
@@ -608,6 +911,18 @@ with tab2:
                     hovermode="x unified", margin=dict(t=20, b=40, l=60, r=20), height=360,
                 )
                 st.plotly_chart(fig_eff, use_container_width=True, theme=None)
+
+            with st.expander("💡 Bagaimana nilai N (Ukuran Dataset) diolah dalam pengujian ini?", expanded=False):
+                st.markdown('''
+                <div style="font-size: 0.85rem; color: #4a4637; line-height: 1.6; padding: 0.5rem 0.5rem;">
+                    <ol>
+                        <li><strong>Pembangkitan Data Dummy (Generation):</strong> Sistem secara dinamis memanggil fungsi <code>generate_processes(N)</code> untuk mengalokasikan array berisikan data acak sebanyak <b>N</b> elemen ke dalam memori RAM komputer.</li>
+                        <li><strong>Pengukuran Terisolasi:</strong> Penghitung waktu (<code>time.perf_counter</code>) diaktifkan secara eksklusif <i>hanya</i> saat memanggil fungsi rekursinya. Waktu untuk men-<i>generate</i> data tidak ikut dihitung, sehingga grafik 100% murni mencerminkan performa algoritma.</li>
+                        <li><strong>Uji Ekstrem Rekursi:</strong> Jika N=100.000, fungsi akan menumpuk (<i>Stack</i>) pemanggilan ke dalam memori sebanyak 100.000 tingkat. Inilah mengapa program PAA ini mewajibkan peningkatan batas kedalaman dengan <code>sys.setrecursionlimit</code> agar tidak terjadi <i>RecursionError</i> atau memori jebol (<i>Stack Overflow</i>).</li>
+                        <li><strong>Pengulangan untuk Akurasi (Looping):</strong> Guna menghindari hasil yang cacat akibat <i>lag</i> acak dari Sistem Operasi, algoritma diuji secara berulang (contoh: 3x per ukuran N), kemudian diambil rata-rata waktu tempuhnya.</li>
+                    </ol>
+                </div>
+                ''', unsafe_allow_html=True)
 
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown('<div class="sl">Detail Hasil Pengujian</div>', unsafe_allow_html=True)
